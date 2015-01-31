@@ -40,8 +40,9 @@ class Image_Thumbnails {
         }
 
         // get thumbnail cache path
+        $img_route = Text::clean_slashes($img_route);
         $thumb_route = '/' . $thumb_dir . '/' . $thumb_size . str_replace('/', '@', $img_route);
-        $thumb_file = $base_dir . $thumb_route;
+        $thumb_file = Text::clean_slashes($base_dir . $thumb_route);
 
         if(!is_file($thumb_file)){
             // get thumbnail size
