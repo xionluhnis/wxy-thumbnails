@@ -10,6 +10,49 @@ include_once ROOT_DIR . '/files.php';
  */
 class Image_Thumbnails {
 
+    /**
+     * Orientation mode
+     *
+     * @value 0 no auto-orientation
+     * @value 1 only auto-orient the thumbnail
+     * @value 2 auto-orient the original image (and thumbnail)
+     */
+    private $orient;
+
+    public function __construct() {
+        $this->orient = 0;
+    }
+
+    public function config_loaded($config){
+        if(array_key_exists('thumbnail_orient', $config)){
+            $this->orient = $config['thumbnail_orient'];
+        }
+    }
+
+    /**
+     * Auto-rotate an image
+     *
+     * @param Imagick $im the imagick image
+     * @return whether the image changed (and thus deserves being saved)
+     */
+    public static function auto_rotate($im){
+        switch($im->getImageOrientation()){
+            case imagick::ORIENTATION_BOTTOMRIGHT:
+                $im->rotateImage("#000", 180);
+                break;
+            case imagick::ORIENTATION_RIGHTTOP:
+                $im->rotateImage("#000", 90);
+                break;
+            case imagick::ORIENTATION_LEFTBOTTOM:
+                $im->rotateImage("#000", -90);
+                break;
+            default:
+                return FALSE;
+        }
+        $im->setImageOrientation(imagick::ORIENTATION_TOPLEFT);
+        return TRUE;
+    }
+
     public function request_url(&$route){
         // is a thumbnail requested?
         $atpos = strrpos($route, '@');
@@ -50,6 +93,17 @@ class Image_Thumbnails {
 
             // crop image
             $im = new Imagick($img_file);
+
+            // auto-orientation
+            if($this->orient > 0 && self::auto_rotate($im)){
+                // should we store the image?
+                if($this->orient >= 2){
+                    try{
+                        $im->writeImage();
+                    }catch(ImagickException $ex){}
+                }
+            }
+
             $im->cropThumbnailImage( $thumb_width, $thumb_height );
             $im->writeImage($thumb_file);
         }
